@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Animated, interactive classroom lab on polynomial regression: why a straight line fails, the normal equations by hand, degree choice and overfitting.">
+  <title>Polynomial Regression Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Hind+Siliguri:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page">
+
+<header class="hero">
+  <div class="eyebrow">Supervised learning · Regression</div>
+  <h1>Polynomial Regression Lab</h1>
+  <p class="lede">Some relationships curve. A car going twice as fast doesn't need twice the distance to stop. It needs far more. This Lab shows why a straight line breaks on curved data, how adding an <code>x²</code> term fixes it, and how the coefficients are worked out by hand.</p>
+  <div class="goals"><span>Why linear fails</span><span>ŷ = b₀ + b₁x + b₂x²</span><span>Normal equations by hand</span><span>Choosing the degree</span><span>sklearn PolynomialFeatures</span></div>
+</header>
+
+<!-- HOOK -->
+<section id="hook">
+  <div class="sh">
+    <div class="eyebrow">Hook</div>
+    <h2>How far does a car need to stop at 80 km/h?</h2>
+    <p>We measured stopping distance on a wet road at five speeds, from 10 to 50 km/h. Now a driver asks about 80 km/h, a speed we never tested. Fit a model and ask it.</p>
+  </div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="hookChart" viewBox="0 0 560 340" role="img" aria-label="Stopping distance against speed, with predictions at 80 km/h"></svg>
+      <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>measured</span><span><i style="background:var(--lin)"></i>straight line</span><span><i style="background:var(--poly)"></i>curve (degree 2)</span></div>
+    </div>
+    <div class="read">
+      <div class="btns"><button class="btn l" id="hLin" aria-pressed="false">Fit a straight line</button><button class="btn p" id="hPoly" aria-pressed="false">Fit a curve</button></div>
+      <div class="rrow"><span class="k">Straight line says</span><span class="v lin" id="hLv">—</span></div>
+      <div class="rrow"><span class="k">Curve says</span><span class="v poly" id="hPv">—</span></div>
+      <div class="rrow"><span class="k">Difference</span><span class="v" id="hDv">—</span></div>
+      <p class="narr" id="hMsg">Press both buttons. The two models agree on the measured speeds, but not at 80 km/h.</p>
+    </div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Straight line বলছে ৮০ km/h-এ থামতে ৬৬.৫ মিটার লাগবে, curve বলছে ১০১ মিটার। প্রায় ৩৫ মিটারের পার্থক্য। বাস্তবে এটাই দুর্ঘটনা আর নিরাপদে থামার পার্থক্য।</p>
+</section>
+
+<!-- DATA -->
+<section id="data">
+  <div class="sh">
+    <div class="eyebrow">The dataset</div>
+    <h2>Five measurements, before any calculation</h2>
+    <p>x is speed in units of 10 km/h (so x = 3 means 30 km/h). y is total stopping distance in metres, including the driver's reaction time.</p>
+  </div>
+  <div class="panel tw" style="padding:8px 10px">
+    <table>
+      <thead><tr><th>Car test</th><th>Speed (km/h)</th><th>x</th><th>Distance y (m)</th><th>Jump from previous</th></tr></thead>
+      <tbody id="dataBody"></tbody>
+    </table>
+  </div>
+  <p class="note">Look at the last column: each extra 10 km/h adds more distance than the one before (8, 6, 9, 17). The steps are uneven, and they grow overall. A straight line assumes every step is the same size.</p>
+</section>
+
+<!-- WHY LINEAR FAILS -->
+<section id="why">
+  <div class="sh">
+    <div class="eyebrow">The problem</div>
+    <h2>Why a straight line isn't enough</h2>
+    <p>Fit the best possible straight line, ŷ = −9.5 + 9.5x, then look for evidence that it's the wrong shape. Step through the evidence.</p>
+  </div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="whyChart" viewBox="0 0 560 340" role="img" aria-label="Best straight line and its residuals"></svg>
+      <svg class="chart" id="resChart" viewBox="0 0 560 170" role="img" aria-label="Residual plot"></svg>
+    </div>
+    <div class="stack">
+      <div class="btns"><button class="btn primary" id="wNext">Next evidence</button><button class="btn" id="wReset">Reset</button><span class="note" id="wCount">0 / 5</span></div>
+      <p class="narr" id="wMsg">Press <b>Next evidence</b> to draw the best straight line.</p>
+      <div class="tw"><table><thead><tr><th>x</th><th>y</th><th>ŷ line</th><th>residual y − ŷ</th></tr></thead><tbody id="wBody"></tbody></table></div>
+    </div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Residual-এর চিহ্ন দেখো: + + − − +। ভুলগুলো এলোমেলো না, একটা U-আকৃতির pattern আছে। এর মানে model data-র বাঁকটা ধরতে পারছে না। R² = ০.৯৫৬ দেখতে ভালো, কিন্তু shape ভুল।</p>
+</section>
+
+<!-- IDEA -->
+<section id="idea">
+  <div class="sh">
+    <div class="eyebrow">The fix</div>
+    <h2>Add a squared term</h2>
+    <p>Polynomial regression keeps the straight-line equation and adds powers of x. With degree 2 we add one new term, b₂x², and b₂ controls how much the line bends.</p>
+  </div>
+  <div class="eqn" aria-label="y-hat equals b0 plus b1 x plus b2 x squared"><span class="t0">ŷ = b₀</span> <span class="t1">+ b₁x</span> <span class="t2">+ b₂x<sup>2</sup></span></div>
+  <div class="panel split">
+    <div class="stack">
+      <h3 style="font-size:19px">The trick: x² is just a new column</h3>
+      <p style="color:var(--ink-2)">We don't need a new algorithm. We create a new feature, x², and give both columns to ordinary linear regression. The model is still <b>linear in its coefficients</b> b₀, b₁ and b₂, so every least-squares tool still works.</p>
+      <div class="btns"><button class="btn primary" id="fBtn">Create the x² column</button><button class="btn" id="fReset">Reset</button></div>
+      <p class="note" id="fMsg">One input column becomes two features.</p>
+    </div>
+    <div class="tw"><table id="fTable"><thead><tr><th>x</th><th class="x2c" hidden>x²</th><th>y</th></tr></thead><tbody></tbody></table></div>
+  </div>
+  <div class="ladder">
+    <div><b>Degree 1: line</b><code>b₀ + b₁x</code><span>Constant slope. No bend.</span></div>
+    <div><b>Degree 2: parabola</b><code>b₀ + b₁x + b₂x²</code><span>One bend (U or ∩). Our data.</span></div>
+    <div><b>Degree 3: cubic</b><code>… + b₃x³</code><span>Up to two bends (S-shape).</span></div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Polynomial regression আসলে নতুন কোনো algorithm না। x² নামে একটা নতুন column বানিয়ে linear regression-কেই দিই। তাই একে এখনো "linear" model বলা হয়, কারণ b-গুলোর দিক থেকে সমীকরণটা linear।</p>
+</section>
+
+<!-- EXPLORER -->
+<section id="explore">
+  <div class="sh">
+    <div class="eyebrow">Interactive</div>
+    <h2>Shape the curve yourself</h2>
+    <p>Each coefficient has a job. Pick a tab to move one coefficient at a time, then try to get the error (SSE) as low as you can before revealing the best fit.</p>
+  </div>
+  <div class="btns" id="xTabs"></div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="xChart" viewBox="0 0 560 340" role="img" aria-label="Adjustable polynomial curve over the data"></svg>
+      <div class="live-eq" id="xEq"></div>
+    </div>
+    <div class="stack">
+      <p class="narr" id="xMsg"></p>
+      <div class="sl b0"><label for="sb0">b₀ (shift up/down) <output id="ob0"></output></label><input type="range" id="sb0" min="-15" max="15" step="0.5"></div>
+      <div class="sl b1"><label for="sb1">b₁ (tilt) <output id="ob1"></output></label><input type="range" id="sb1" min="-10" max="15" step="0.5"></div>
+      <div class="sl b2"><label for="sb2">b₂ (bend) <output id="ob2"></output></label><input type="range" id="sb2" min="-2" max="3" step="0.1"></div>
+      <div><div class="note" style="margin-bottom:4px">Sum of squared errors (SSE). Lower is better. Best possible: 10.0</div><div class="sse"><div class="track"><div class="fill" id="xSseF"></div></div><b id="xSse"></b></div></div>
+      <div class="btns"><button class="btn p" id="xBest">Reveal best fit</button></div>
+      <div class="tw"><table><thead><tr><th>x</th><th>y</th><th>ŷ</th><th>e</th><th>e²</th></tr></thead><tbody id="xBody"></tbody></table></div>
+    </div>
+  </div>
+</section>
+
+<!-- MATH -->
+<section id="math">
+  <div class="sh">
+    <div class="eyebrow">The math, by hand</div>
+    <h2>Finding b₀, b₁ and b₂ with the normal equations</h2>
+    <p>Least squares picks the coefficients that make SSE = Σ(y − ŷ)² as small as possible. For degree 2 this gives three equations in three unknowns. We build them, then solve by elimination.</p>
+  </div>
+  <div class="mctl">
+    <div class="btns"><button class="btn primary" id="mNext">Next step</button><button class="btn" id="mPlay">Play all</button><button class="btn" id="mReset">Reset</button></div>
+    <div class="pbar" id="mBar"></div>
+  </div>
+  <div class="msteps" id="mSteps">
+
+    <div class="mstep" data-s="0">
+      <h3><span>Step 1</span>Write the goal</h3>
+      <p>We want the curve ŷ = b₀ + b₁x + b₂x² that minimises the total squared error. Setting the derivative of SSE with respect to each b to zero gives the <b>normal equations</b>, one for each coefficient:</p>
+      <div class="ml">
+        Σy &nbsp;&nbsp;= n·b₀ &nbsp;+ b₁Σx &nbsp;+ b₂Σx²<br>
+        Σxy &nbsp;= b₀Σx &nbsp;+ b₁Σx² + b₂Σx³<br>
+        Σx²y = b₀Σx² + b₁Σx³ + b₂Σx⁴
+      </div>
+      <p class="note">Rule: n unknowns need n equations. Degree 2 has 3 coefficients, so it needs 3 equations.</p>
+    </div>
+
+    <div class="mstep" data-s="1">
+      <h3><span>Step 2</span>Build the sums table</h3>
+      <p>Every Σ in those equations comes from one table. Each row is one car test.</p>
+      <div class="tw"><table id="sumTable"><thead><tr><th>x</th><th>x²</th><th>x³</th><th>x⁴</th><th>y</th><th>xy</th><th>x²y</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="mstep" data-s="2">
+      <h3><span>Step 3</span>Plug the sums into the equations</h3>
+      <p>n = 5, Σx = 15, Σx² = 55, Σx³ = 225, Σx⁴ = 979, Σy = 95, Σxy = 380, Σx²y = 1636.</p>
+      <div class="ml">
+        (1) &nbsp;&nbsp;5b₀ + &nbsp;15b₁ + &nbsp;55b₂ = &nbsp;&nbsp;95<br>
+        (2) &nbsp;15b₀ + &nbsp;55b₁ + 225b₂ = &nbsp;380<br>
+        (3) &nbsp;55b₀ + 225b₁ + 979b₂ = 1636
+      </div>
+    </div>
+
+    <div class="mstep" data-s="3">
+      <h3><span>Step 4</span>Remove b₀ from equation (2)</h3>
+      <p>Multiply (1) by 3 so its b₀ term matches, then subtract it from (2).</p>
+      <div class="ml">
+        <span class="dim">(2)</span> &nbsp;&nbsp;&nbsp;&nbsp;15b₀ + 55b₁ + 225b₂ = 380<br>
+        <span class="dim">3×(1)</span> &nbsp;15b₀ + 45b₁ + 165b₂ = 285<br>
+        <span class="hl">(A)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl">10b₁ + &nbsp;60b₂ = &nbsp;95</span>
+      </div>
+    </div>
+
+    <div class="mstep" data-s="4">
+      <h3><span>Step 5</span>Remove b₀ from equation (3)</h3>
+      <p>Multiply (1) by 11 (because 5 × 11 = 55), then subtract it from (3).</p>
+      <div class="ml">
+        <span class="dim">(3)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;55b₀ + 225b₁ + 979b₂ = 1636<br>
+        <span class="dim">11×(1)</span> &nbsp;55b₀ + 165b₁ + 605b₂ = 1045<br>
+        <span class="hl">(B)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hl">60b₁ + 374b₂ = &nbsp;591</span>
+      </div>
+    </div>
+
+    <div class="mstep" data-s="5">
+      <h3><span>Step 6</span>Remove b₁ and solve for b₂</h3>
+      <p>Multiply (A) by 6 so its b₁ term matches (B), then subtract.</p>
+      <div class="ml">
+        <span class="dim">(B)</span> &nbsp;&nbsp;&nbsp;60b₁ + 374b₂ = 591<br>
+        <span class="dim">6×(A)</span> 60b₁ + 360b₂ = 570<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;14b₂ = &nbsp;21 &nbsp;→ &nbsp;<span class="hl">b₂ = 21 / 14 = 1.5</span>
+      </div>
+    </div>
+
+    <div class="mstep" data-s="6">
+      <h3><span>Step 7</span>Back-substitute for b₁ and b₀</h3>
+      <div class="ml">
+        From (A): 10b₁ + 60(1.5) = 95 → 10b₁ = 5 → <span class="hr">b₁ = 0.5</span><br>
+        From (1): 5b₀ + 15(0.5) + 55(1.5) = 95 → 5b₀ + 7.5 + 82.5 = 95 → 5b₀ = 5 → <span>b₀ = 1</span>
+      </div>
+      <div class="eqn" style="font-size:clamp(20px,3.2vw,28px)"><span class="t0">ŷ = 1</span> <span class="t1">+ 0.5x</span> <span class="t2">+ 1.5x<sup>2</sup></span></div>
+    </div>
+
+    <div class="mstep" data-s="7">
+      <h3><span>Step 8</span>Check the fit against the straight line</h3>
+      <div class="tw"><table><thead><tr><th>x</th><th>y</th><th>ŷ = 1 + 0.5x + 1.5x²</th><th>residual</th><th>residual²</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>2</td><td>1 + 0.5 + 1.5 = 3</td><td class="neg">−1</td><td>1</td></tr>
+          <tr><td>2</td><td>10</td><td>1 + 1 + 6 = 8</td><td class="pos">+2</td><td>4</td></tr>
+          <tr><td>3</td><td>16</td><td>1 + 1.5 + 13.5 = 16</td><td>0</td><td>0</td></tr>
+          <tr><td>4</td><td>25</td><td>1 + 2 + 24 = 27</td><td class="neg">−2</td><td>4</td></tr>
+          <tr><td>5</td><td>42</td><td>1 + 2.5 + 37.5 = 41</td><td class="pos">+1</td><td>1</td></tr>
+          <tr class="tot"><td colspan="4">SSE</td><td>10</td></tr>
+        </tbody></table></div>
+      <div class="ml">
+        SSE: straight line = <span class="hr">41.5</span> &nbsp;→&nbsp; curve = <span class="hl">10.0</span> &nbsp;(76% less error)<br>
+        R² = 1 − SSE/SST, where SST = Σ(y − ȳ)² = 944<br>
+        R²: straight line = 1 − 41.5/944 = <span class="hr">0.956</span> &nbsp;→&nbsp; curve = 1 − 10/944 = <span class="ok">0.989</span>
+      </div>
+      <p class="note">In matrix form this is the same equation you saw for linear regression: b = (XᵀX)⁻¹Xᵀy, where X now has the columns [1, x, x²].</p>
+    </div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Linear regression-এ ২টা unknown (b₀, b₁) ছিল, তাই ২টা equation লেগেছিল। এখানে ৩টা unknown, তাই ৩টা equation। বাকি পদ্ধতি একই: sum-এর table বানাও, equation-এ বসাও, আর elimination দিয়ে সমাধান করো।</p>
+</section>
+
+<!-- PREDICT -->
+<section id="predict">
+  <div class="sh">
+    <div class="eyebrow">Using the model</div>
+    <h2>Predict any speed</h2>
+    <p>Drag the speed and compare the two models' answers. Watch what happens once you leave the range we measured (10–50 km/h).</p>
+  </div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="pChart" viewBox="0 0 560 340" role="img" aria-label="Predictions from both models across speeds"></svg>
+    </div>
+    <div class="stack">
+      <div class="sl"><label for="sSpeed">Speed <output id="oSpeed"></output></label><input type="range" id="sSpeed" min="1" max="10" step="0.5" value="8" style="accent-color:var(--ink)"></div>
+      <div class="ml" id="pLin"></div>
+      <div class="ml" id="pPoly"></div>
+      <p class="narr" id="pMsg"></p>
+    </div>
+  </div>
+</section>
+
+<!-- DEGREE -->
+<section id="degree">
+  <div class="sh">
+    <div class="eyebrow">Choosing the degree</div>
+    <h2>Too simple, just right, too flexible</h2>
+    <p>A higher degree always fits the training points at least as well. That doesn't make it better. Three new test drives (hollow dots) that the model never saw show which degree actually generalises.</p>
+  </div>
+  <div class="deg-cards" id="degCards"></div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="dChart" viewBox="0 0 560 340" role="img" aria-label="Polynomial fits of degree 1 to 3 with training and test points"></svg>
+      <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>training data (5)</span><span><i class="dot" style="background:var(--surface);border:2px solid var(--ink)"></i>new test drives (3)</span></div>
+    </div>
+    <div class="stack">
+      <div class="errbars">
+        <div class="eb"><div class="top"><span>Training error (SSE)</span><b id="dTr"></b></div><div class="track"><div class="fill" id="dTrF" style="background:var(--muted)"></div></div></div>
+        <div class="eb"><div class="top"><span>Test error (SSE on new drives)</span><b id="dTe"></b></div><div class="track"><div class="fill" id="dTeF"></div></div></div>
+      </div>
+      <p class="narr" id="dMsg"></p>
+      <div class="tw"><table><thead><tr><th>Test drive</th><th>Actual</th><th>Predicted</th></tr></thead><tbody id="dBody"></tbody></table></div>
+    </div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Degree 3 প্রতিটা training point একদম ছুঁয়ে যায় (error ০), কিন্তু নতুন data-তে ভুল অনেক বেড়ে যায়। একে overfitting বলে: model data মুখস্থ করেছে, শেখেনি। সঠিক degree বাছতে সবসময় test data দিয়ে যাচাই করো।</p>
+</section>
+
+<!-- PYTHON -->
+<section id="python">
+  <div class="sh">
+    <div class="eyebrow">In Python</div>
+    <h2>The same model with scikit-learn</h2>
+    <p><code>PolynomialFeatures</code> builds the [1, x, x²] columns, and <code>LinearRegression</code> does the rest. Press Run to see the output, which matches the hand calculation.</p>
+  </div>
+<pre class="code"><span class="k">import</span> numpy <span class="k">as</span> np
+<span class="k">from</span> sklearn.preprocessing <span class="k">import</span> PolynomialFeatures
+<span class="k">from</span> sklearn.linear_model <span class="k">import</span> LinearRegression
+<span class="k">from</span> sklearn.metrics <span class="k">import</span> r2_score
+
+X = np.array([[1], [2], [3], [4], [5]])   <span class="c"># speed (x 10 km/h)</span>
+y = np.array([2, 10, 16, 25, 42])          <span class="c"># stopping distance (m)</span>
+
+lin = LinearRegression().fit(X, y)
+<span class="f">print</span>(<span class="s">"Linear:     b0 ="</span>, <span class="f">round</span>(lin.intercept_, 2), <span class="s">" b1 ="</span>, lin.coef_.round(2))
+<span class="f">print</span>(<span class="s">"Linear R2  ="</span>, <span class="f">round</span>(r2_score(y, lin.predict(X)), 3))
+
+poly = PolynomialFeatures(degree=2)
+X_poly = poly.fit_transform(X)             <span class="c"># columns: 1, x, x²</span>
+<span class="f">print</span>(X_poly)
+
+model = LinearRegression().fit(X_poly, y)
+<span class="f">print</span>(<span class="s">"Polynomial: b0 ="</span>, <span class="f">round</span>(model.intercept_, 2), <span class="s">" coef ="</span>, model.coef_.round(2))
+<span class="f">print</span>(<span class="s">"Poly R2    ="</span>, <span class="f">round</span>(r2_score(y, model.predict(X_poly)), 3))
+
+<span class="f">print</span>(<span class="s">"Predict 80 km/h, linear:"</span>, lin.predict([[8]]).round(1))
+<span class="f">print</span>(<span class="s">"Predict 80 km/h, poly:  "</span>, model.predict(poly.transform([[8]])).round(1))</pre>
+  <div class="btns"><button class="btn primary" id="rRun">▶ Run</button><button class="btn" id="rClear">Clear output</button></div>
+  <div class="out" id="rOut">
+<div>Linear:     b0 = -9.5  b1 = [9.5]</div>
+<div>Linear R2  = 0.956</div>
+<div>[[ 1.  1.  1.]</div>
+<div> [ 1.  2.  4.]</div>
+<div> [ 1.  3.  9.]</div>
+<div> [ 1.  4. 16.]</div>
+<div> [ 1.  5. 25.]]</div>
+<div>Polynomial: b0 = 1.0  coef = [0.  0.5 1.5]</div>
+<div>Poly R2    = 0.989</div>
+<div>Predict 80 km/h, linear: [66.5]</div>
+<div>Predict 80 km/h, poly:   [101.]</div>
+  </div>
+  <p class="note">Why is the first coefficient 0? <code>PolynomialFeatures</code> adds a column of 1s, and <code>LinearRegression</code> already has its own intercept (b₀ = 1.0), so the weight on that column of 1s ends up 0.</p>
+</section>
+
+<!-- QUIZ -->
+<section id="quiz">
+  <div class="sh">
+    <div class="eyebrow">Check your understanding</div>
+    <h2>Quiz: 10 questions, 1 point each</h2>
+    <p>Name, email and every question are required. You'll see your score and the correct answers right after you submit. Answers stay on this device and aren't sent anywhere.</p>
+  </div>
+  <form class="qform" id="qForm" novalidate>
+    <div class="who">
+      <div class="fld"><label for="qName">Full name <em>*</em></label><input id="qName" autocomplete="name" required></div>
+      <div class="fld"><label for="qEmail">Email <em>*</em></label><input id="qEmail" type="email" autocomplete="email" required></div>
+    </div>
+    <div id="qList" style="display:grid;gap:12px"></div>
+    <p class="formerr" id="qErr" role="alert"></p>
+    <div class="btns"><button class="btn primary" type="submit" id="qSubmit">Submit answers</button><button class="btn" type="button" id="qRetry" hidden>Try again</button></div>
+    <div id="qScore"></div>
+  </form>
+</section>
+
+<!-- ESSAYS -->
+<section>
+  <div class="sh"><div class="eyebrow">Discussion</div><h2>Essay and discussion prompts</h2></div>
+  <ol class="essays">
+    <li>Explain, with the stopping-distance data, three separate pieces of evidence that a straight line is the wrong model.</li>
+    <li>Why is polynomial regression still called a "linear" model, even though its graph is a curve?</li>
+    <li>Derive the three normal equations for a degree-2 polynomial and explain where each Σ term comes from.</li>
+    <li>What is overfitting? Use the degree 1, 2 and 3 results from this Lab to explain the difference between training error and test error.</li>
+    <li>Why is it risky to use a polynomial model to predict far outside the range of the training data? Give an example.</li>
+  </ol>
+</section>
+
+<!-- GLOSSARY -->
+<section>
+  <div class="sh"><div class="eyebrow">Reference</div><h2>Glossary</h2></div>
+  <div class="panel tw" style="padding:6px">
+    <table class="gl">
+      <thead><tr><th>Term</th><th>Formula</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>Polynomial regression</td><td class="f">ŷ = b₀ + b₁x + b₂x² + …</td><td>Regression that adds powers of x as extra features so the fitted line can bend.</td></tr>
+        <tr><td>Degree</td><td class="f">highest power of x</td><td>Degree 1 is a straight line, degree 2 is a parabola, degree 3 is a cubic.</td></tr>
+        <tr><td>Coefficient b₂</td><td class="f">—</td><td>Controls the bend. b₂ &gt; 0 opens upward, b₂ &lt; 0 opens downward, b₂ = 0 gives a straight line.</td></tr>
+        <tr><td>Residual</td><td class="f">e = y − ŷ</td><td>The error for one point. A pattern in residuals means the model is missing structure.</td></tr>
+        <tr><td>SSE</td><td class="f">Σ(y − ŷ)²</td><td>Sum of squared errors. Least squares makes this as small as possible.</td></tr>
+        <tr><td>R²</td><td class="f">1 − SSE / SST</td><td>Share of variation in y the model explains. A high R² doesn't prove the shape is right.</td></tr>
+        <tr><td>Normal equations</td><td class="f">XᵀX b = Xᵀy</td><td>The system you solve to get the least-squares coefficients. One equation per coefficient.</td></tr>
+        <tr><td>Feature transformation</td><td class="f">x → [1, x, x²]</td><td>Creating new input columns from existing ones. PolynomialFeatures does this in sklearn.</td></tr>
+        <tr><td>Underfitting</td><td class="f">—</td><td>The model is too simple to capture the pattern, so errors are high on both training and test data.</td></tr>
+        <tr><td>Overfitting</td><td class="f">—</td><td>The model is so flexible it fits the noise, so training error is low but test error is high.</td></tr>
+        <tr><td>Extrapolation</td><td class="f">—</td><td>Predicting outside the range of the training data. Polynomials can go badly wrong there.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SUMMARY -->
+<section>
+  <div class="sh"><div class="eyebrow">Summary</div><h2>Six takeaways</h2></div>
+  <div class="sum">
+    <div><b>When to use it</b><span>The data curves, and the residuals of a straight line show a pattern such as + + − − +.</span></div>
+    <div><b>The model</b><span>ŷ = b₀ + b₁x + b₂x². b₂ controls the bend.</span></div>
+    <div><b>Still linear</b><span>x² is just a new feature, and the model is linear in b. Ordinary least squares still works.</span></div>
+    <div><b>The math</b><span>3 coefficients need 3 normal equations. Build a sums table, then solve by elimination.</span></div>
+    <div><b>Pick the degree</b><span>Choose by test error, not training error. Too high a degree overfits.</span></div>
+    <div><b>Careful outside the data</b><span>Polynomials can shoot off quickly beyond the range you trained on.</span></div>
+  </div>
+  <footer>Polynomial Regression Lab · Worked example: 5 stopping-distance tests · Best fit ŷ = 1 + 0.5x + 1.5x² · SSE 41.5 → 10 · R² 0.956 → 0.989</footer>
+</section>
+
+</div>
+<script src="script.js"></script>
+</body>
+</html>
