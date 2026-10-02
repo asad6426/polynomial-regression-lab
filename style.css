@@ -194,6 +194,15 @@ tr.tot td{font-weight:600;border-top:2px solid var(--ink);border-bottom:0}
 .eb .track{height:18px;border-radius:5px;background:var(--surface-2);overflow:hidden;border:1px solid var(--hairline)}
 .eb .fill{height:100%;transition:width .6s ease}
 
+.ts-now{font-size:14px;padding:8px 12px;border-radius:9px;border:1px dashed var(--hairline);color:var(--ink-2)}
+.ts-now b{color:var(--ink)}
+.ts-tbl td{font-family:var(--f-body);font-size:14px}
+.ts-tbl td.num{font-family:var(--f-mono)}
+.ts-tbl tr.cur td{background:var(--poly-soft)}
+.ts-tbl tr{cursor:pointer}
+.ts-tbl tr:hover td{background:var(--surface-2)}
+.ts-tbl tr.cur:hover td{background:var(--poly-soft)}
+
 /* pipeline */
 .pipe{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:4px}
 .pnode{flex:1 0 108px;border:1.5px solid var(--hairline);border-radius:12px;padding:10px;display:grid;gap:4px;align-content:center;text-align:center;background:var(--surface);transition:border-color .3s,background .3s,transform .3s}

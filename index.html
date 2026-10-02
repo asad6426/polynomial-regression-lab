@@ -72,15 +72,23 @@
       <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>data points</span><span><i style="background:var(--ok)"></i><i style="background:var(--bad)"></i>distance to the model (error)</span></div>
     </div>
     <div class="read">
-      <div class="btns"><button class="btn" id="tsLin" type="button">Linear dataset</button><button class="btn" id="tsU" type="button">U-shaped dataset</button></div>
-      <div class="btns"><button class="btn p" id="tsCurve" type="button" aria-pressed="false">Add the x² term</button></div>
-      <div class="rrow"><span class="k">Model</span><span class="v" id="tsModel" style="font-size:16px"></span></div>
+      <div class="btns"><span class="note" style="min-width:4.5em">1. Data</span><button class="btn" id="tsLin" type="button">Linear dataset</button><button class="btn" id="tsU" type="button">U-shaped dataset</button></div>
+      <div class="btns"><span class="note" style="min-width:4.5em">2. Model</span><button class="btn l" id="tsLine" type="button">Straight line</button><button class="btn p" id="tsCurve" type="button">Line + x² (curve)</button></div>
+      <p class="ts-now" id="tsNow"></p>
+      <div class="rrow"><span class="k">Equation</span><span class="v" id="tsModel" style="font-size:16px"></span></div>
       <div class="rrow"><span class="k">Points close to the model (±1.5)</span><span class="v" id="tsClose"></span></div>
       <div class="rrow"><span class="k">Loss (SSE)</span><span class="v" id="tsSse"></span></div>
       <div class="rrow"><span class="k">R²</span><span class="v" id="tsR2"></span></div>
       <p class="narr" id="tsMsg"></p>
     </div>
   </div>
+  <div class="panel tw" style="padding:8px 10px">
+    <table class="ts-tbl">
+      <thead><tr><th>Dataset</th><th>Model</th><th>Points close (±1.5)</th><th>Loss (SSE)</th><th>R²</th><th>Verdict</th></tr></thead>
+      <tbody id="tsTable"></tbody>
+    </table>
+  </div>
+  <p class="note">All four combinations at once. Every result is fixed: the same data and the same model always give the same numbers. The highlighted row is the one on the chart.</p>
   <p class="cue bn"><b>ক্লাসে বলুন:</b> Linear data-তে straight line প্রায় সব point-এর কাছ দিয়ে যায়, তাই loss কম। কিন্তু U-আকৃতির data-তে সবচেয়ে ভালো line-টাও প্রায় সমতল, আর মাত্র ২টা জায়গায় data-কে ছোঁয়। বাকি সব point অনেক দূরে, তাই loss অনেক বেশি। সমাধান: model বদলাব না, linear model-এর সাথে একটা add-on (x²) যোগ করব।</p>
 </section>
 

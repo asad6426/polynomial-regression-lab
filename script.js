@@ -66,18 +66,30 @@ const SETS={
   lin:{y:[5.6,6.6,9.3,10.3,13.5,14.8,17.4,18.4,21.1],btn:'#tsLin'},
   u:{y:[18.5,10.7,6.4,2.5,2.3,2.6,6.5,10.8,18.3],btn:'#tsU'}
 };
-const ts={set:'u',curve:false};
-function drawTS(anim){
-  const Yd=SETS[ts.set].y, d=ts.curve?2:1, c=polyfit(X9,Yd,d), f=x=>pval(c,x);
-  $('#tsLin').setAttribute('aria-pressed',ts.set==='lin'); $('#tsU').setAttribute('aria-pressed',ts.set==='u'); $('#tsCurve').setAttribute('aria-pressed',ts.curve);
-  chart($('#tsChart'),{xd:[0,10],yd:[0,24],xt:[0,1,2,3,4,5,6,7,8,9,10],yt:[0,5,10,15,20],xl:'x',yl:'y',noResLbl:true,
-    pts:X9.map((x,i)=>[x,Yd[i]]),curves:[{f,cls:ts.curve?'c-poly':'c-lin',from:0.3,to:9.7,draw:anim}],resid:X9.map((x,i)=>({x,y:Yd[i],yh:f(x),e:Yd[i]-f(x)}))});
+const ts={set:'lin',curve:false};
+const term=(v,s)=>{ const r=Math.round(v*100)/100; return `${r<0?'−':'+'} ${fmt(Math.abs(r),2)}${s}`; };
+function tsFit(set,curve){
+  const Yd=SETS[set].y, c=polyfit(X9,Yd,curve?2:1), f=x=>pval(c,x);
   const m=Yd.reduce((a,b)=>a+b,0)/Yd.length; let sse=0,sst=0,close=0;
   X9.forEach((x,i)=>{ const e=Yd[i]-f(x); sse+=e*e; sst+=(Yd[i]-m)**2; if(Math.abs(e)<=1.5) close++; });
-  const r2=1-sse/sst;
-  $('#tsModel').innerHTML = ts.curve ? `<span class="poly">ŷ = ${fmt(c[0],2)} ${c[1]<0?'−':'+'} ${fmt(Math.abs(c[1]),2)}x ${c[2]<0?'−':'+'} ${fmt(Math.abs(c[2]),2)}x²</span>` : `<span class="lin">ŷ = ${fmt(c[0],2)} ${c[1]<0?'−':'+'} ${fmt(Math.abs(c[1]),2)}x</span>`;
-  $('#tsClose').textContent=`${close} / 9`; $('#tsClose').style.color = close>=8?'var(--ok)':close<=3?'var(--bad)':'';
-  $('#tsSse').textContent=fmt(sse); $('#tsR2').textContent=fmt(Math.max(0,r2),3);
+  return {Yd,c,f,sse,close,r2:Math.max(0,1-sse/sst)};
+}
+const TS_NAME={lin:'Linear dataset',u:'U-shaped dataset'};
+const TS_VERDICT={lin0:'Good fit',lin1:'Good fit (x² not needed)',u0:'Bad fit',u1:'Good fit'};
+function drawTS(anim){
+  const R=tsFit(ts.set,ts.curve), c=R.c, f=R.f;
+  $('#tsLin').setAttribute('aria-pressed',ts.set==='lin'); $('#tsU').setAttribute('aria-pressed',ts.set==='u');
+  $('#tsLine').setAttribute('aria-pressed',!ts.curve); $('#tsCurve').setAttribute('aria-pressed',ts.curve);
+  $('#tsNow').innerHTML=`Showing: <b>${TS_NAME[ts.set]}</b> with a <b>${ts.curve?'curve (line + x²)':'straight line'}</b>`;
+  chart($('#tsChart'),{xd:[0,10],yd:[0,24],xt:[0,1,2,3,4,5,6,7,8,9,10],yt:[0,5,10,15,20],xl:'x',yl:'y',noResLbl:true,
+    pts:X9.map((x,i)=>[x,R.Yd[i]]),curves:[{f,cls:ts.curve?'c-poly':'c-lin',from:0.3,to:9.7,draw:anim}],resid:X9.map((x,i)=>({x,y:R.Yd[i],yh:f(x),e:R.Yd[i]-f(x)}))});
+  $('#tsModel').innerHTML = ts.curve ? `<span class="poly">ŷ = ${fmt(c[0],2)} ${term(c[1],'x')} ${term(c[2],'x²')}</span>` : `<span class="lin">ŷ = ${fmt(c[0],2)} ${term(c[1],'x')}</span>`;
+  $('#tsClose').textContent=`${R.close} / 9`; $('#tsClose').style.color = R.close>=8?'var(--ok)':R.close<=3?'var(--bad)':'';
+  $('#tsSse').textContent=fmt(R.sse); $('#tsR2').textContent=fmt(R.r2,3);
+  const d=ts.curve?2:1;
+  $('#tsTable').innerHTML=[['lin',false],['lin',true],['u',false],['u',true]].map(([s,cv])=>{ const r=tsFit(s,cv), k=s+(cv?1:0), good=TS_VERDICT[k].startsWith('Good');
+    return `<tr class="${s===ts.set&&cv===ts.curve?'cur':''}" data-s="${s}" data-c="${cv?1:0}"><td>${TS_NAME[s]}</td><td>${cv?'Curve (line + x²)':'Straight line'}</td><td class="num">${r.close} / 9</td><td class="num">${fmt(r.sse)}</td><td class="num">${fmt(r.r2,3)}</td><td style="color:var(--${good?'ok':'bad'});font-weight:600">${TS_VERDICT[k]}</td></tr>`; }).join('');
+  $('#tsTable').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{ ts.set=tr.dataset.s; ts.curve=tr.dataset.c==='1'; drawTS(true); });
   const M={
     'lin1':'The points rise along a straight path, so the best line passes close to all of them. The loss is small and R² is close to 1. <b>A linear model is the right choice for linear data.</b>',
     'u1':'The points form a <b>U</b>. The best possible straight line is almost flat and only crosses the U in two places. Not a single point lies within ±1.5 of it, so the loss is huge and R² is close to 0. <b>A plain linear model cannot follow a curve.</b>',
@@ -88,7 +100,8 @@ function drawTS(anim){
 }
 $('#tsLin').onclick=()=>{ ts.set='lin'; drawTS(true); };
 $('#tsU').onclick=()=>{ ts.set='u'; drawTS(true); };
-$('#tsCurve').onclick=()=>{ ts.curve=!ts.curve; drawTS(true); };
+$('#tsLine').onclick=()=>{ ts.curve=false; drawTS(true); };
+$('#tsCurve').onclick=()=>{ ts.curve=true; drawTS(true); };
 drawTS(false);
 
 /* ---------- DEGREE SHAPES ---------- */
