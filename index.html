@@ -17,7 +17,7 @@
   <div class="eyebrow">Supervised learning · Regression</div>
   <h1>Polynomial Regression Lab</h1>
   <p class="lede">Some relationships curve. A car going twice as fast doesn't need twice the distance to stop. It needs far more. This Lab shows why a straight line breaks on curved data, how adding an <code>x²</code> term fixes it, and how the coefficients are worked out by hand.</p>
-  <div class="goals"><span>Why linear fails</span><span>ŷ = b₀ + b₁x + b₂x²</span><span>Normal equations by hand</span><span>Choosing the degree</span><span>sklearn PolynomialFeatures</span></div>
+  <div class="goals"><span>Linear vs non-linear data</span><span>Why linear fails</span><span>Degree 0 to n</span><span>Feature function f(·)</span><span>ŷ = b₀ + b₁x + b₂x²</span><span>Normal equations by hand</span><span>Choosing the degree</span><span>sklearn PolynomialFeatures</span></div>
 </header>
 
 <!-- HOOK -->
@@ -59,6 +59,31 @@
   <p class="note">Look at the last column: each extra 10 km/h adds more distance than the one before (8, 6, 9, 17). The steps are uneven, and they grow overall. A straight line assumes every step is the same size.</p>
 </section>
 
+<!-- TWO DATASETS -->
+<section id="twosets">
+  <div class="sh">
+    <div class="eyebrow">Linear vs non-linear data</div>
+    <h2>The same straight line on two different datasets</h2>
+    <p>A straight line is a great model when the data itself moves in a straight line. Switch between the two datasets and watch how far the points sit from the best possible line.</p>
+  </div>
+  <div class="panel split">
+    <div class="stack">
+      <svg class="chart" id="tsChart" viewBox="0 0 560 340" role="img" aria-label="Best fit on a linear or U-shaped dataset"></svg>
+      <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>data points</span><span><i style="background:var(--ok)"></i><i style="background:var(--bad)"></i>distance to the model (error)</span></div>
+    </div>
+    <div class="read">
+      <div class="btns"><button class="btn" id="tsLin" type="button">Linear dataset</button><button class="btn" id="tsU" type="button">U-shaped dataset</button></div>
+      <div class="btns"><button class="btn p" id="tsCurve" type="button" aria-pressed="false">Add the x² term</button></div>
+      <div class="rrow"><span class="k">Model</span><span class="v" id="tsModel" style="font-size:16px"></span></div>
+      <div class="rrow"><span class="k">Points close to the model (±1.5)</span><span class="v" id="tsClose"></span></div>
+      <div class="rrow"><span class="k">Loss (SSE)</span><span class="v" id="tsSse"></span></div>
+      <div class="rrow"><span class="k">R²</span><span class="v" id="tsR2"></span></div>
+      <p class="narr" id="tsMsg"></p>
+    </div>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Linear data-তে straight line প্রায় সব point-এর কাছ দিয়ে যায়, তাই loss কম। কিন্তু U-আকৃতির data-তে সবচেয়ে ভালো line-টাও প্রায় সমতল, আর মাত্র ২টা জায়গায় data-কে ছোঁয়। বাকি সব point অনেক দূরে, তাই loss অনেক বেশি। সমাধান: model বদলাব না, linear model-এর সাথে একটা add-on (x²) যোগ করব।</p>
+</section>
+
 <!-- WHY LINEAR FAILS -->
 <section id="why">
   <div class="sh">
@@ -97,12 +122,62 @@
     </div>
     <div class="tw"><table id="fTable"><thead><tr><th>x</th><th class="x2c" hidden>x²</th><th>y</th></tr></thead><tbody></tbody></table></div>
   </div>
-  <div class="ladder">
-    <div><b>Degree 1: line</b><code>b₀ + b₁x</code><span>Constant slope. No bend.</span></div>
-    <div><b>Degree 2: parabola</b><code>b₀ + b₁x + b₂x²</code><span>One bend (U or ∩). Our data.</span></div>
-    <div><b>Degree 3: cubic</b><code>… + b₃x³</code><span>Up to two bends (S-shape).</span></div>
+  <div class="panel split">
+    <div class="stack">
+      <h3 style="font-size:19px">From linear to polynomial: one equation family</h3>
+      <div class="ml">
+        <span class="dim">Simple linear</span><br>
+        y = α₀ + α₁x₁<br>
+        <span class="dim">Multiple linear (m input variables)</span><br>
+        y = α₀ + α₁x₁ + α₂x₂ + … + αₘxₘ = α₀ + Σ<sub>i=1</sub><sup>m</sup> αᵢxᵢ<br>
+        <span class="dim">Polynomial, degree n (one input x)</span><br>
+        y = α₀ + α₁x + <span class="hl">α₂x²</span> + … + <span class="hl">αₙxⁿ</span> = α₀ + Σ<sub>j=1</sub><sup>n</sup> αⱼx<sup>j</sup>
+      </div>
+      <p style="color:var(--ink-2);font-size:15px">Look at the power of x. In the linear equations every x has power 1, so they are <b>degree-1 polynomials</b>. Polynomial regression keeps the same equation and adds terms with higher powers.</p>
+      <p class="note"><b>Notation:</b> books and videos write the coefficients as α (alpha), β (beta), θ (theta) or b. They all mean the same thing. This Lab uses b, so b₀ = α₀, b₁ = α₁, b₂ = α₂.</p>
+    </div>
+    <div class="stack">
+      <h3 style="font-size:19px">What each degree looks like</h3>
+      <div class="btns" id="shapeBtns"></div>
+      <svg class="chart" id="shapeChart" viewBox="0 0 560 220" role="img" aria-label="Typical curve shape for the selected degree"></svg>
+      <div class="ml" id="shapeEq"></div>
+      <p class="note" id="shapeTxt"></p>
+    </div>
   </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> Degree মানে x-এর সবচেয়ে বড় power। Degree 0 মানে x⁰ = 1, তাই y একটা constant, একদম সমতল line। Degree 1 মানে ঢালু line, degree 2 মানে parabola (একটা বাঁক)। এভাবে degree n পর্যন্ত যাওয়া যায়।</p>
   <p class="cue bn"><b>ক্লাসে বলুন:</b> Polynomial regression আসলে নতুন কোনো algorithm না। x² নামে একটা নতুন column বানিয়ে linear regression-কেই দিই। তাই একে এখনো "linear" model বলা হয়, কারণ b-গুলোর দিক থেকে সমীকরণটা linear।</p>
+</section>
+
+<!-- FEATURE FUNCTION -->
+<section id="features">
+  <div class="sh">
+    <div class="eyebrow">The add-on to a linear model</div>
+    <h2>The polynomial feature function f(·)</h2>
+    <p>Polynomial regression = a <b>polynomial feature function</b> + an ordinary <b>linear model</b>. The function takes your original columns and adds new columns with higher powers. You decide how many input variables to use and which degree.</p>
+  </div>
+  <div class="panel" style="display:grid;gap:16px">
+    <div class="pipe" id="pipe">
+      <div class="pnode" data-k="0"><span>Input columns</span><b id="pIn">x</b></div>
+      <div class="parr">→</div>
+      <div class="pnode fn" data-k="1"><span>Feature function</span><b>f(·)</b></div>
+      <div class="parr">→</div>
+      <div class="pnode" data-k="2"><span>Feature columns</span><b id="pCount">2</b></div>
+      <div class="parr">→</div>
+      <div class="pnode" data-k="3"><span>Linear Regression</span><b>α₀, α₁, …</b></div>
+      <div class="parr">→</div>
+      <div class="pnode" data-k="4"><span>Prediction</span><b>ŷ</b></div>
+    </div>
+    <div class="fopts">
+      <div class="btns"><span class="note">Input variables:</span><button class="btn" type="button" data-nv="1">1 (x)</button><button class="btn" type="button" data-nv="2">2 (x₁, x₂)</button></div>
+      <div class="btns"><span class="note">Degree:</span><button class="btn" type="button" data-dg="1">1</button><button class="btn" type="button" data-dg="2">2</button><button class="btn" type="button" data-dg="3">3</button></div>
+      <div class="btns"><span class="note">Style:</span><button class="btn" type="button" data-md="pow">Powers only</button><button class="btn" type="button" data-md="sk">sklearn (adds interactions)</button></div>
+    </div>
+    <div class="btns"><button class="btn primary" type="button" id="pRun">Run the pipeline</button></div>
+    <div class="chips2" id="fChips" aria-live="polite"></div>
+    <div class="ml" id="fEq"></div>
+    <p class="narr" id="fNote"></p>
+  </div>
+  <p class="cue bn"><b>ক্লাসে বলুন:</b> ধরো data-তে ২টা column আছে, x₁ আর x₂। Feature function এদের square যোগ করে, x₁² আর x₂²। তাহলে ২টা feature থেকে ৪টা হলো। sklearn-এর PolynomialFeatures এর সাথে x₁·x₂-ও যোগ করে, যাকে interaction term বলে। কয়টা variable আর কোন degree লাগবে, সেটা programmer ঠিক করে।</p>
 </section>
 
 <!-- EXPLORER -->
@@ -257,6 +332,7 @@
     <div class="eyebrow">Choosing the degree</div>
     <h2>Too simple, just right, too flexible</h2>
     <p>A higher degree always fits the training points at least as well. That doesn't make it better. Three new test drives (hollow dots) that the model never saw show which degree actually generalises.</p>
+    <p><b>Start from the shape of the data.</b> One bend (U or ∩) means degree 2 is enough, so you don't need x³. An S-shape suggests degree 3. Pick the lowest degree that captures the shape, then confirm it with the test error.</p>
   </div>
   <div class="deg-cards" id="degCards"></div>
   <div class="panel split">
@@ -326,7 +402,7 @@ model = LinearRegression().fit(X_poly, y)
 <section id="quiz">
   <div class="sh">
     <div class="eyebrow">Check your understanding</div>
-    <h2>Quiz: 10 questions, 1 point each</h2>
+    <h2>Quiz: 12 questions, 1 point each</h2>
     <p>Name, email and every question are required. You'll see your score and the correct answers right after you submit. Answers stay on this device and aren't sent anywhere.</p>
   </div>
   <form class="qform" id="qForm" novalidate>
@@ -368,6 +444,10 @@ model = LinearRegression().fit(X_poly, y)
         <tr><td>R²</td><td class="f">1 − SSE / SST</td><td>Share of variation in y the model explains. A high R² doesn't prove the shape is right.</td></tr>
         <tr><td>Normal equations</td><td class="f">XᵀX b = Xᵀy</td><td>The system you solve to get the least-squares coefficients. One equation per coefficient.</td></tr>
         <tr><td>Feature transformation</td><td class="f">x → [1, x, x²]</td><td>Creating new input columns from existing ones. PolynomialFeatures does this in sklearn.</td></tr>
+        <tr><td>Degree-0 polynomial</td><td class="f">y = α₀</td><td>A constant. Because x⁰ = 1, every x gives the same y.</td></tr>
+        <tr><td>Polynomial feature function</td><td class="f">f(x₁, x₂) → x₁, x₂, x₁², x₂² …</td><td>The add-on that creates higher-power columns before the linear model is trained.</td></tr>
+        <tr><td>Interaction term</td><td class="f">x₁·x₂</td><td>Two input variables multiplied together. sklearn adds these when there is more than one input.</td></tr>
+        <tr><td>α, β, θ, b</td><td class="f">α₀ = b₀ …</td><td>Different notations for the same coefficients. Books and videos use different letters.</td></tr>
         <tr><td>Underfitting</td><td class="f">—</td><td>The model is too simple to capture the pattern, so errors are high on both training and test data.</td></tr>
         <tr><td>Overfitting</td><td class="f">—</td><td>The model is so flexible it fits the noise, so training error is low but test error is high.</td></tr>
         <tr><td>Extrapolation</td><td class="f">—</td><td>Predicting outside the range of the training data. Polynomials can go badly wrong there.</td></tr>
@@ -387,6 +467,7 @@ model = LinearRegression().fit(X_poly, y)
     <div><b>Pick the degree</b><span>Choose by test error, not training error. Too high a degree overfits.</span></div>
     <div><b>Careful outside the data</b><span>Polynomials can shoot off quickly beyond the range you trained on.</span></div>
   </div>
+  <p class="note" style="margin-top:8px">Further watching: <a href="https://youtu.be/Y90NTNG_yJg" target="_blank" rel="noopener" style="color:var(--poly)">Polynomial Regression Explained in Hindi</a> by 5 Minutes Engineering (about 10 minutes). It covers the linear vs non-linear datasets, degree 0 to n, and the polynomial feature function.</p>
   <footer>Polynomial Regression Lab · Worked example: 5 stopping-distance tests · Best fit ŷ = 1 + 0.5x + 1.5x² · SSE 41.5 → 10 · R² 0.956 → 0.989</footer>
 </section>
 

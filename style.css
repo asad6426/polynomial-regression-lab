@@ -194,6 +194,20 @@ tr.tot td{font-weight:600;border-top:2px solid var(--ink);border-bottom:0}
 .eb .track{height:18px;border-radius:5px;background:var(--surface-2);overflow:hidden;border:1px solid var(--hairline)}
 .eb .fill{height:100%;transition:width .6s ease}
 
+/* pipeline */
+.pipe{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding-bottom:4px}
+.pnode{flex:1 0 108px;border:1.5px solid var(--hairline);border-radius:12px;padding:10px;display:grid;gap:4px;align-content:center;text-align:center;background:var(--surface);transition:border-color .3s,background .3s,transform .3s}
+.pnode span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pnode b{font-family:var(--f-mono);font-weight:500;font-size:16px}
+.pnode.fn{border-style:dashed;border-color:var(--poly)}
+.pnode.on{border-color:var(--poly);background:var(--poly-soft);transform:translateY(-3px)}
+.parr{align-self:center;color:var(--muted);font-size:18px;flex:none}
+.fopts{display:grid;gap:8px}
+.chips2{display:flex;flex-wrap:wrap;gap:6px;min-height:40px}
+.chips2 span{font-family:var(--f-mono);font-size:14px;padding:6px 11px;border-radius:8px;border:1.5px solid var(--hairline);background:var(--surface-2)}
+.chips2 span.new{border-color:var(--poly);background:var(--poly-soft);color:var(--poly)}
+.chips2 span.int{border-color:var(--over);background:var(--over-soft);color:var(--over)}
+
 /* code */
 pre.code{background:var(--code);color:var(--code-ink);border-radius:12px;padding:16px 18px;font-family:var(--f-mono);font-size:13.5px;line-height:1.7;overflow-x:auto;margin:0;white-space:pre}
 pre.code .c{color:var(--code-dim)} pre.code .k{color:#ff9f6e} pre.code .s{color:#9fdc8f} pre.code .f{color:#7fb8ff}

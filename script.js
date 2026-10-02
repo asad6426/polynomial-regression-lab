@@ -28,7 +28,7 @@ function chart(svg,o){
     for(let i=0;i<=160;i++){ const x=a+(b-a)*i/160; let y=c.f(x); y=Math.max(o.yd[0]-500,Math.min(o.yd[1]+500,y)); d+=(i?'L':'M')+sx(x).toFixed(1)+','+sy(y).toFixed(1); }
     s+=`<path class="${c.cls}${c.draw?' draw':''}" d="${d}" clip-path="url(#${id})"/>`;
   });
-  (o.resid||[]).forEach(r=>{ const c=r.e>=0?'pos':'neg'; s+=`<line class="res-${c}" x1="${sx(r.x)}" x2="${sx(r.x)}" y1="${sy(r.y)}" y2="${sy(r.yh)}"/><text class="res-lbl ${c}" x="${sx(r.x)+7}" y="${(sy(r.y)+sy(r.yh))/2+4}">${sgn(r.e)}</text>`; });
+  (o.resid||[]).forEach(r=>{ const c=r.e>=0?'pos':'neg'; s+=`<line class="res-${c}" x1="${sx(r.x)}" x2="${sx(r.x)}" y1="${sy(r.y)}" y2="${sy(r.yh)}"/>`+(o.noResLbl?'':`<text class="res-lbl ${c}" x="${sx(r.x)+7}" y="${(sy(r.y)+sy(r.yh))/2+4}">${sgn(r.e)}</text>`); });
   (o.bars||[]).forEach(b=>{ const c=b.v>=0?'pos':'neg', y0=sy(0), y1=sy(b.v); s+=`<rect class="bar-${c}" x="${sx(b.x)-12}" y="${Math.min(y0,y1)}" width="24" height="${Math.abs(y1-y0)}" rx="3"/><text class="sign ${c}" x="${sx(b.x)}" y="${b.v>=0?y1-6:y1+16}" text-anchor="middle">${b.v>=0?'+':'−'}</text>`; });
   (o.pts||[]).forEach(p=>{ s+=`<circle class="pt" cx="${sx(p[0])}" cy="${sy(p[1])}" r="6"/>`; });
   (o.tpts||[]).forEach(p=>{ s+=`<circle class="tpt" cx="${sx(p[0])}" cy="${sy(p[1])}" r="6"/>`; });
@@ -58,6 +58,97 @@ drawHook();
 
 /* ---------- DATA ---------- */
 $('#dataBody').innerHTML=X.map((x,i)=>`<tr><td>Test ${i+1}</td><td>${x*10}</td><td>${x}</td><td>${Y[i]}</td><td>${i?'+'+(Y[i]-Y[i-1])+' m':'—'}</td></tr>`).join('');
+
+/* ---------- TWO DATASETS ---------- */
+const pval=(c,x)=>c.reduce((s,a,i)=>s+a*x**i,0);
+const X9=[1,2,3,4,5,6,7,8,9];
+const SETS={
+  lin:{y:[5.6,6.6,9.3,10.3,13.5,14.8,17.4,18.4,21.1],btn:'#tsLin'},
+  u:{y:[18.5,10.7,6.4,2.5,2.3,2.6,6.5,10.8,18.3],btn:'#tsU'}
+};
+const ts={set:'u',curve:false};
+function drawTS(anim){
+  const Yd=SETS[ts.set].y, d=ts.curve?2:1, c=polyfit(X9,Yd,d), f=x=>pval(c,x);
+  $('#tsLin').setAttribute('aria-pressed',ts.set==='lin'); $('#tsU').setAttribute('aria-pressed',ts.set==='u'); $('#tsCurve').setAttribute('aria-pressed',ts.curve);
+  chart($('#tsChart'),{xd:[0,10],yd:[0,24],xt:[0,1,2,3,4,5,6,7,8,9,10],yt:[0,5,10,15,20],xl:'x',yl:'y',noResLbl:true,
+    pts:X9.map((x,i)=>[x,Yd[i]]),curves:[{f,cls:ts.curve?'c-poly':'c-lin',from:0.3,to:9.7,draw:anim}],resid:X9.map((x,i)=>({x,y:Yd[i],yh:f(x),e:Yd[i]-f(x)}))});
+  const m=Yd.reduce((a,b)=>a+b,0)/Yd.length; let sse=0,sst=0,close=0;
+  X9.forEach((x,i)=>{ const e=Yd[i]-f(x); sse+=e*e; sst+=(Yd[i]-m)**2; if(Math.abs(e)<=1.5) close++; });
+  const r2=1-sse/sst;
+  $('#tsModel').innerHTML = ts.curve ? `<span class="poly">ŷ = ${fmt(c[0],2)} ${c[1]<0?'−':'+'} ${fmt(Math.abs(c[1]),2)}x ${c[2]<0?'−':'+'} ${fmt(Math.abs(c[2]),2)}x²</span>` : `<span class="lin">ŷ = ${fmt(c[0],2)} ${c[1]<0?'−':'+'} ${fmt(Math.abs(c[1]),2)}x</span>`;
+  $('#tsClose').textContent=`${close} / 9`; $('#tsClose').style.color = close>=8?'var(--ok)':close<=3?'var(--bad)':'';
+  $('#tsSse').textContent=fmt(sse); $('#tsR2').textContent=fmt(Math.max(0,r2),3);
+  const M={
+    'lin1':'The points rise along a straight path, so the best line passes close to all of them. The loss is small and R² is close to 1. <b>A linear model is the right choice for linear data.</b>',
+    'u1':'The points form a <b>U</b>. The best possible straight line is almost flat and only crosses the U in two places. Not a single point lies within ±1.5 of it, so the loss is huge and R² is close to 0. <b>A plain linear model cannot follow a curve.</b>',
+    'u2':'Same linear regression, plus one extra feature: <b>x²</b>. Now the model can bend, the curve passes close to every point, and the loss drops dramatically.',
+    'lin2':'On straight-line data, adding x² barely changes anything because its coefficient comes out close to 0. The extra term does no harm, but it is not needed.'
+  };
+  $('#tsMsg').innerHTML=M[ts.set+d];
+}
+$('#tsLin').onclick=()=>{ ts.set='lin'; drawTS(true); };
+$('#tsU').onclick=()=>{ ts.set='u'; drawTS(true); };
+$('#tsCurve').onclick=()=>{ ts.curve=!ts.curve; drawTS(true); };
+drawTS(false);
+
+/* ---------- DEGREE SHAPES ---------- */
+const SHAPES=[
+  {n:'0',f:x=>3,eq:'y = α₀',t:'x⁰ = 1, so every x gives the same y. A flat, constant line.'},
+  {n:'1',f:x=>0.6+0.9*x,eq:'y = α₀ + α₁x',t:'A sloped straight line. No bends. This is simple linear regression.'},
+  {n:'2',f:x=>0.55*(x-3)**2+0.4,eq:'y = α₀ + α₁x + α₂x²',t:'A parabola with one bend (U or ∩). Quadratic.'},
+  {n:'3',f:x=>{const u=x-3; return 0.3*u**3-1.5*u+3;},eq:'y = α₀ + α₁x + α₂x² + α₃x³',t:'A cubic with up to two bends (S-shape).'},
+  {n:'4',f:x=>{const u=x-3; return 0.12*u**4-1.1*u**2+3.5;},eq:'y = α₀ + α₁x + … + α₄x⁴',t:'Up to three bends (W or M shape). Each extra degree allows one more bend.'}
+];
+const sb=$('#shapeBtns');
+SHAPES.forEach((s,i)=>{ const b=document.createElement('button'); b.type='button'; b.className='btn'; b.textContent='Degree '+s.n; b.onclick=()=>setShape(i,true); sb.appendChild(b); });
+function setShape(i,anim){
+  const s=SHAPES[i]; [...sb.children].forEach((b,j)=>b.setAttribute('aria-pressed',i===j));
+  chart($('#shapeChart'),{h:220,xd:[0,6],yd:[-1,7],xt:[],yt:[0,3,6],curves:[{f:s.f,cls:i<2?'c-lin':i===2?'c-poly':'c-over',draw:anim}]});
+  $('#shapeEq').textContent=s.eq; $('#shapeTxt').textContent=s.t+' General form for degree n: y = α₀ + α₁x + α₂x² + … + αₙxⁿ.';
+}
+setShape(2,false);
+
+/* ---------- FEATURE FUNCTION ---------- */
+const sup=['','','²','³'];
+const fs={nv:1,dg:2,md:'pow'};
+function features(){
+  const v=fs.nv===1?['x']:['x₁','x₂'], out=[];
+  if(fs.md==='pow' || fs.nv===1){ for(let k=1;k<=fs.dg;k++) v.forEach(a=>out.push({t:a+sup[k],k:k>1?'new':''})); }
+  else { for(let k=1;k<=fs.dg;k++) for(let a=k;a>=0;a--){ const b=k-a, parts=[]; if(a) parts.push('x₁'+sup[a]); if(b) parts.push('x₂'+sup[b]); out.push({t:parts.join('·'),k:k===1?'':(a&&b?'int':'new')}); } }
+  return out;
+}
+const SKNAMES={1:{1:"['x']",2:"['x' 'x^2']",3:"['x' 'x^2' 'x^3']"},2:{1:"['x1' 'x2']",2:"['x1' 'x2' 'x1^2' 'x1 x2' 'x2^2']",3:"['x1' 'x2' 'x1^2' 'x1 x2' 'x2^2' 'x1^3' 'x1^2 x2' 'x1 x2^2' 'x2^3']"}};
+let pTok=0;
+function renderF(show){
+  document.querySelectorAll('[data-nv]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.nv===fs.nv));
+  document.querySelectorAll('[data-dg]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.dg===fs.dg));
+  document.querySelectorAll('[data-md]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.md===fs.md));
+  const F=features(); $('#pIn').textContent=fs.nv===1?'x':'x₁, x₂'; $('#pCount').textContent=F.length;
+  if(show!==false){ $('#fChips').innerHTML=F.map(f=>`<span class="${f.k}">${f.t}</span>`).join(''); }
+  $('#fEq').innerHTML='ŷ = α₀ '+F.map((f,i)=>`+ α<sub>${i+1}</sub>${f.t}`).join(' ');
+  const orig=fs.nv, added=F.length-orig;
+  let note=`<b>${orig}</b> original column${orig>1?'s':''} became <b>${F.length}</b> feature columns (${added} new). Blue chips are the new higher-power features`;
+  if(fs.md==='sk'&&fs.nv===2&&fs.dg>1) note+=', purple chips are <b>interaction terms</b> (two variables multiplied together)';
+  note+='. The linear model then learns one α for each column.';
+  if(fs.md==='pow'&&fs.nv===2&&fs.dg>1) note+=' This "powers only" version matches adding x₁² and x₂² by hand.';
+  if(fs.md==='sk'||fs.nv===1) note+=`<br><span class="mono" style="font-size:13px">PolynomialFeatures(degree=${fs.dg}, include_bias=False).fit(X).get_feature_names_out(${fs.nv===1?'["x"]':'["x1", "x2"]'}) → ${SKNAMES[fs.nv][fs.dg]}</span>`;
+  $('#fNote').innerHTML=note;
+}
+async function runPipe(){
+  const tok=++pTok, nodes=[...document.querySelectorAll('.pnode')], F=features(), box=$('#fChips');
+  nodes.forEach(n=>n.classList.remove('on')); box.innerHTML='';
+  for(let i=0;i<nodes.length;i++){
+    if(tok!==pTok) return; nodes.forEach(n=>n.classList.remove('on')); nodes[i].classList.add('on');
+    if(i===2){ for(const f of F){ if(tok!==pTok) return; const s=document.createElement('span'); s.className=f.k+' pop'; s.textContent=f.t; box.appendChild(s); await wait(380); } }
+    await wait(700);
+  }
+  nodes.forEach(n=>n.classList.remove('on'));
+}
+document.querySelectorAll('[data-nv]').forEach(b=>b.onclick=()=>{ pTok++; fs.nv=+b.dataset.nv; renderF(); });
+document.querySelectorAll('[data-dg]').forEach(b=>b.onclick=()=>{ pTok++; fs.dg=+b.dataset.dg; renderF(); });
+document.querySelectorAll('[data-md]').forEach(b=>b.onclick=()=>{ pTok++; fs.md=b.dataset.md; renderF(); });
+$('#pRun').onclick=runPipe;
+fs.nv=2; renderF();
 
 /* ---------- WHY ---------- */
 const WMSG=[
@@ -199,6 +290,8 @@ const QZ=[
  {q:'Which scikit-learn class creates the x² (and higher) columns?',o:['StandardScaler','LinearRegression','PolynomialFeatures','train_test_split'],a:2,e:'PolynomialFeatures(degree=2) turns x into [1, x, x²]. LinearRegression then fits the coefficients.'},
  {q:'With PolynomialFeatures(degree=3) (bias included), what does x = 2 become?',o:['[2, 4, 8]','[1, 2, 4, 8]','[1, 2, 3]','[2, 4, 6, 8]'],a:1,e:'The columns are 1, x, x², x³ → 1, 2, 4, 8.'},
  {q:'How many normal equations must you solve for a degree-2 polynomial?',o:['1','2','3','4'],a:2,e:'There are three unknowns (b₀, b₁, b₂), so you need three equations.'},
+ {q:'What does a degree-0 polynomial look like?',o:['A flat line: y = α₀ (a constant)','A sloped straight line','A parabola','A U-shape with two bends'],a:0,e:'With degree 0 every x has power 0, and x⁰ = 1, so y = α₀ is the same constant for every x.'},
+ {q:'Data has 2 input columns (x₁, x₂). With PolynomialFeatures(degree=2, include_bias=False), how many feature columns do you get?',o:['2','4','5','6'],a:2,e:'You get x₁, x₂, x₁², x₁·x₂, x₂², which is 5. Adding only the squares by hand gives 4, but sklearn also adds the interaction term x₁·x₂.'},
  {q:'A straight line has R² = 0.956 on curved data. What is the right conclusion?',o:['The model is correct because R² is above 0.9','A high R² alone doesn\'t prove the shape is right, so check the residuals','R² must be 1 for any model to be useful','R² is not defined for regression'],a:1,e:'R² can be high even when the model has the wrong shape. The residual pattern revealed the missing curve.'}
 ];
 const ql=$('#qList');
